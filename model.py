@@ -139,9 +139,9 @@ class Circuit:
         # T_traj = []
         n_max = int(t_max / dt)
 
-        if self.compiled_step is None:
-            self.compiled_step = torch.compile(self.step)
-        # self.compiled_step = self.step
+        # if self.compiled_step is None:
+        #     self.compiled_step = torch.compile(self.step)
+        self.compiled_step = self.step
 
         t0 = time.time()
         for i in range(n_max):
