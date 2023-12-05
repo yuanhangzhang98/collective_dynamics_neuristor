@@ -100,9 +100,11 @@ class Circuit:
 
         self.compiled_step = None
 
-    def set_input(self, V, Cth_factor):
-        self.V0 = V  # (batch, N)
-        self.Cth_factor = Cth_factor  # (batch, N)
+    def set_input(self, V=None, Cth_factor=None):
+        if V is not None:
+            self.V0 = V  # (batch, N)
+        if Cth_factor is not None:
+            self.Cth_factor = Cth_factor  # (batch, N)
 
     def dydt(self, t, y):
         V1 = y[:, 0, :]  # (batch, N)
