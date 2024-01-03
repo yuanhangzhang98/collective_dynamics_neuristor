@@ -1,5 +1,5 @@
 # Collective dynamics and long-range order in thermal neuristor networks
-This repository contains source code for reproducing the results in the paper *Collective dynamics and long-range order in thermal neuristor networks*. Paper appearing soon! 
+This repository contains source code for reproducing the results in the paper *Collective dynamics and long-range order in thermal neuristor networks*. ArXiv link: [arXiv:2312.12899](https://arxiv.org/abs/2312.12899v1). 
 
 Here is another relevant paper on thermal neuristors: [Reconfigurable Cascaded Thermal Neuristors for Neuromorphic Computing](https://onlinelibrary.wiley.com/doi/abs/10.1002/adma.202306818)
 
