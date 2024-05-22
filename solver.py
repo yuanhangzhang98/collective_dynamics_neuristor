@@ -21,7 +21,7 @@ torch.set_default_tensor_type(torch.cuda.FloatTensor
 
 class Solver:
     def __init__(self, d, batch, N, V, R, noise_strength, Cth_factor, couple_factor, width_factor, T_base,
-                 t_max, dt, n_repeat, peak_threshold, min_dist, len_x=2, len_y=50):
+                 t_max, dt, n_repeat, peak_threshold, min_dist, len_x=2, len_y=50, batch_idx=0):
         self.d = d
         if d == 1:
             self.N = N
@@ -49,7 +49,7 @@ class Solver:
         self.transient = 0.5
         self.len_x = len_x
         self.len_y = len_y
-        # self.label = label
+        self.batch_idx = batch_idx
 
         self.name_string = f'{N}_{V:.3f}_{1000 * noise_strength:.4f}_{Cth_factor:.4f}_{couple_factor:.4f}_' \
                            f'{width_factor:.4f}'
@@ -61,7 +61,6 @@ class Solver:
                                    T_base)
         else:
             raise NotImplementedError(f'Only 1D and 2D are supported, got {d}')
-
 
     def dynamics(self, save_traj=False, plot_2D=False):
         # peaks = []
@@ -76,14 +75,11 @@ class Solver:
             peak_i = find_peaks(I_traj.reshape(self.batch * self.N, -1), self.peak_threshold, self.min_dist)
             peak_i = peak_i.reshape(self.batch, self.N, -1)
             peak_i = bin_traj(peak_i, self.len_x, self.len_y)
-            # peaks.append(peak_i)
             peaks[:, :, i-1] = peak_i
             if save_traj:
                 torch.save(I_traj, f'results/I_traj_{self.name_string}_{i}.pt')
-            if i == self.n_repeat:
-                I_traj_end = I_traj[:, :, -self.save_length:].clone()
             if self.d == 2 and plot_2D and i > self.n_repeat - plot_epochs:
-                for batch_idx in trange(self.batch):
+                for batch_idx in trange(1):
                     V = self.model.V0[batch_idx].item()
                     Cth_factor = self.model.Cth_factor[batch_idx].item()
                     name_string_i = f'{self.N}_{V:.3f}_{1000 * self.noise_strength:.4f}_{Cth_factor:.4f}_' \
@@ -98,44 +94,16 @@ class Solver:
                         ax.imshow(I_traj_i[:, :, j], cmap='Blues', norm=matplotlib.colors.Normalize(vmin=0, vmax=I_traj.max()))
                         ax.set_axis_off()
                         fig.savefig(f'graphs/2D_{name_string_i}_{i}_{j}.png', dpi=300, bbox_inches='tight')
+                        fig.savefig(f'graphs/2D_{name_string_i}_{i}_{j}.svg', dpi=300, bbox_inches='tight')
                         plt.close()
             del I_traj
 
-        I_traj_end = I_traj_end.cpu().numpy()
-        # print('Plotting dynamics...')
-        # for i in trange(self.batch):
-        #     V = self.model.V0[i].item()
-        #     Cth_factor = self.model.Cth_factor[i].item()
-        #     name_string_i = f'{self.N}_{V:.3f}_{1000 * self.noise_strength:.4f}_{Cth_factor:.4f}_' \
-        #                     f'{self.couple_factor:.4f}_{self.width_factor:.4f}'
-        #     fig, ax = plt.subplots()
-        #     ax.imshow(I_traj_end[i, :1024, :], cmap='Blues')
-        #     ax.set_xlabel('Time step')
-        #     ax.set_ylabel('Neuron Index')
-        #     fig.savefig(f'graphs/I-t_{name_string_i}.png', dpi=300, bbox_inches='tight')
-        #     plt.close()
         print(f'{self.name_string} done')
-        # peaks = torch.cat(peaks, dim=2)
         peaks = peaks.reshape(self.batch, self.N, -1)
         return peaks
 
     def find_avalanches(self, binned_traj, save_binned_peaks=False, ensemble=False):
-        # binned_traj = bin_traj(peaks[:, :, int(peaks.shape[2] * self.transient):], self.len_x, self.len_y)
         binned_traj = binned_traj[:, :, int(binned_traj.shape[2] * self.transient):]
-        binned_traj_end = binned_traj[:, :, -256:].cpu().numpy()
-        # print('Plotting peaks......')
-        # for i in trange(self.batch):
-        #     V = self.model.V0[i].item()
-        #     Cth_factor = self.model.Cth_factor[i].item()
-        #     name_string_i = f'{self.N}_{V:.3f}_{1000 * self.noise_strength:.4f}_{Cth_factor:.4f}_' \
-        #                     f'{self.couple_factor:.4f}_{self.width_factor:.4f}'
-        #     fig, ax = plt.subplots()
-        #     ax.imshow(binned_traj_end[i, :256, :], cmap='Purples')
-        #     ax.set_xlabel('Rescaled Time Step')
-        #     ax.set_ylabel('Neuron Index')
-        #     fig.savefig(f'graphs/peaks_{name_string_i}_{self.len_x}_{self.len_y}.png', dpi=300, bbox_inches='tight')
-        #     plt.close()
-
         if save_binned_peaks:
             torch.save(binned_traj, f'peaks/binned_peaks_{self.name_string}_{self.len_x}_{self.len_y}.pt')
         print('Finding avalanches......')
@@ -154,37 +122,36 @@ class Solver:
                 else:
                     continue
 
-            
-
+            cluster_sizes = cluster_sizes[cluster_sizes > 0].cpu().numpy()
+            if len(cluster_sizes) < 2:
+                continue
             V = self.model.V0[i].item()
             Cth_factor = self.model.Cth_factor[i].item()
             name_string_i = f'{self.N}_{V:.3f}_{1000 * self.noise_strength:.4f}_{Cth_factor:.4f}_' \
                             f'{self.couple_factor:.4f}_{self.width_factor:.4f}'
-            try:
-                IQR = (torch.quantile(cluster_sizes, 0.75) - torch.quantile(cluster_sizes, 0.25)).detach().cpu().numpy().item()
-            except:
-                IQR = 1
-            if IQR == 0:
-                # continue
-                IQR = 1
-            bin_len = 2 * IQR * len(cluster_sizes) ** (-1 / 3)
-            bin_num = int(((cluster_sizes.max() - cluster_sizes.min()) / bin_len).detach().cpu().numpy().item())
-            if bin_num == 0:
-                bin_num = 1
-            hist, bin_edges = torch.histogram(cluster_sizes.cpu(), bins=bin_num)
-            nonzero_mask = hist > 0
-            hist = hist[nonzero_mask]
+            log_cluster_sizes = np.log10(cluster_sizes)
+            std = np.std(log_cluster_sizes)
+            bin_width = 3.5 * std / (len(log_cluster_sizes) ** (1 / 3))
+            bin_width = max(bin_width, 0.02)
+            hist_min = 0
+            hist_max = 6
+            n_bins = int((hist_max - hist_min) / bin_width)
+            n_bins = max(n_bins, 1)
+            bins = bin_width * np.arange(n_bins + 1)
+            hist, bin_edges = np.histogram(log_cluster_sizes, bins=bins)
+            bin_edges_linear = 10 ** bin_edges
+            bin_sizes_linear = np.diff(bin_edges_linear)
+            hist = hist / bin_sizes_linear
+            hist = hist / hist.sum()
             bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
-            bin_centers = bin_centers[nonzero_mask]
-            hist = hist.detach().cpu().numpy()
-            bin_centers = bin_centers.detach().cpu().numpy()
-            with open(f'avalanches/avalanches_{name_string_i}_{self.len_x}_{self.len_y}.npy', 'wb') as f:
-                np.save(f, hist)
-                np.save(f, bin_centers)
-                np.save(f, IQR)
-        return IQR
+            bin_centers = bin_centers[hist > 0]
+            hist = hist[hist > 0]
+            # slope, intercept, r, p, se = linregress(bin_centers, np.log10(hist))
+            with open(f'avalanches/clusters_{name_string_i}_{self.len_x}_{self.len_y}_{self.batch_idx}.npy', 'wb') as f:
+                np.save(f, cluster_sizes)
 
+        return cluster_sizes
     def run(self, save_traj=False, save_binned_peaks=False, plot_2D=False, ensemble=False):
         binned_peaks = self.dynamics(save_traj, plot_2D)
-        IQR = self.find_avalanches(binned_peaks, save_binned_peaks, ensemble)
-        return IQR
+        cluster_sizes = self.find_avalanches(binned_peaks, save_binned_peaks, ensemble)
+        return cluster_sizes

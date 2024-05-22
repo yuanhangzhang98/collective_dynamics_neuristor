@@ -71,7 +71,13 @@ def find_cluster(lattice):
         # relabel the lattice
         label = value_map[label]
 
-        index = label.reshape(-1).to(torch.int64)
+        # Optional: each site can only be counted once within each cluster, remove the duplicates
+        new_label, indices = label.sort(dim=1)
+        new_label[:, 1:] *= (torch.diff(new_label, dim=1) != 0).to(torch.int64)
+        indices = indices.sort(dim=1)[1]
+        new_label = torch.gather(new_label, 1, indices)
+
+        index = new_label.reshape(-1).to(torch.int64)
         weight = lattice.reshape(-1)
         cluster_sizes = torch.zeros(value_map.max() + 1, dtype=torch.float)
         cluster_sizes.scatter_add_(0, index, weight)
@@ -141,7 +147,13 @@ def find_cluster_2d(lattice, Nx, Ny):
         # relabel the lattice
         label = value_map[label]
 
-        index = label.reshape(-1).to(torch.int64)
+        # Optional: each site can only be counted once within each cluster, remove the duplicates
+        new_label, indices = label.sort(dim=1)
+        new_label[:, 1:] *= (torch.diff(new_label, dim=1) != 0).to(torch.int64)
+        indices = indices.sort(dim=1)[1]
+        new_label = torch.gather(new_label, 1, indices)
+
+        index = new_label.reshape(-1).to(torch.int64)
         weight = lattice.reshape(-1)
         cluster_sizes = torch.zeros(value_map.max() + 1, dtype=torch.float)
         cluster_sizes.scatter_add_(0, index, weight)
