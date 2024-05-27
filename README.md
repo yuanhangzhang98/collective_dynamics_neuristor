@@ -15,3 +15,5 @@ Parameters of the reservoir (which is an array of thermal neuristors) are pre-tu
 
 `python optimizer_KS.py` uses reservoir computing to predict the chaotic dynamics governed by the 2D Kuramoto-Sivashinsky equations. Takes about 3 minutes in the test environment. 
 The trained reservoir weights, predictions and ground truths are saved in `ckpts/`, and one can further run `python visualize_trajectory.py` to plot the predicted vs. actual dynamics. 
+
+The file `data.zip` contains raw experimental data in Fig. 1 and Fig. 5 from our paper. A description of the data is also provided within the zip file. 
