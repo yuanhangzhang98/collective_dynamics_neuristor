@@ -3,7 +3,7 @@ This repository contains source code for reproducing the results in the paper *C
 
 Here is another relevant paper on thermal neuristors: [Reconfigurable Cascaded Thermal Neuristors for Neuromorphic Computing](https://onlinelibrary.wiley.com/doi/abs/10.1002/adma.202306818)
 
-Requirements: NumPy, SciPy, PyTorch >= 2.3.0, TorchVision. The code is tested in the following environment: Linux, NVIDIA TITAN RTX GPU with 24GB memory, CUDA 11.3, Python 3.9.13, NumPy 1.23.1, SciPy 1.9.3, PyTorch 2.3.0, TorchVision 0.18.0. 
+Requirements: NumPy, SciPy, PyTorch >= 2.3.0, TorchVision. The code is tested in the following environment: Ubuntu 18.04, NVIDIA TITAN RTX GPU with 24GB memory, CUDA 11.3, Python 3.9.13, NumPy 1.23.1, SciPy 1.9.3, PyTorch 2.3.0, TorchVision 0.18.0. 
 
 Usage: 
 
